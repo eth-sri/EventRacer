@@ -11,6 +11,8 @@ Install prerequisites
    * Google Sparse Hash (http://code.google.com/p/sparsehash/downloads/list)
    * Google Flags 2.0 (https://code.google.com/p/gflags/downloads/list)
    * CMake 2.8 (http://www.cmake.org/)
+   * GraphViz is needed to display happens-before graphs.
+      * <code>sudo apt-get install graphviz</code>
 
 Compiling:
    * Run: ./build.sh
