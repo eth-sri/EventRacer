@@ -19,9 +19,9 @@ Running
 -------
 
 Checking a website for races
-   * Obtain a WTF_actionlog file from an instrumented browser (see https://github.com/eth-srl/webkit)
+   * Obtain a WTF_actionlog file by exploring a website with an instrumented browser (see https://github.com/eth-srl/webkit)
    * Run the race analyzer
-      * bin/eventracer/webapp/raceanalyzer <the WFT_actionlog file>
+      * <code>bin/eventracer/webapp/raceanalyzer [the WTF_actionlog file]</code>
       * The above command starts a web server on port 8000 (can be changed with a --port parameter to the above command)
       * Open http://localhost:8000/ to see the races
 
