@@ -143,8 +143,9 @@ const char* VarTypeByName(const char* name) {
 // End utility
 }  // namespace
 
-RaceApp::RaceApp(const std::string& actionLogFile)
-	: m_raceTags(m_vinfo, m_actions, m_vars, m_scopes, m_memValues, m_callTraceBuilder),
+RaceApp::RaceApp(int64 app_id, const std::string& actionLogFile)
+	: m_appId(app_id),
+	  m_raceTags(m_vinfo, m_actions, m_vars, m_scopes, m_memValues, m_callTraceBuilder),
 	  m_fileName(actionLogFile) {
 	fprintf(stderr, "Loading %s... ", actionLogFile.c_str());
 	FILE* f = fopen(actionLogFile.c_str(), "rb");
@@ -537,7 +538,10 @@ void RaceApp::handleRaceDetails(const std::string& params, std::string* response
 	response->append("</ul>");
 
 	// Display a graph between the event actions
-	EventGraphDisplay display_events("race", p, &m_actions, &m_graphInfo, &m_inputEventGraph, &m_graphWithTimers);
+	int focus_id = p.getIntDefault("focus", -1);
+	EventGraphDisplay display_events(
+			"race", StringPrintf("race%llu_%u_%u", m_appId, race_id, focus_id),
+			p, &m_actions, &m_graphInfo, &m_inputEventGraph, &m_graphWithTimers);
 
 	display_events.tryIncludeNode(
 			m_callTraceBuilder.eventCreatedBy(race.m_event1), EventGraphDisplay::NODE_FOCUS_CAUSE, "trigger_op1");
@@ -629,7 +633,8 @@ void RaceApp::handleBrowseGraph(const std::string& params, std::string* response
 				"<p>Highlighted event action %d [<a href=\"code?focus=%d\">see its execution trace</a>]</p>",
 				node_id, node_id);
 	}
-	EventGraphDisplay graph_display("hb", p, &m_actions, &m_graphInfo, &m_inputEventGraph, &m_graphWithTimers);
+	EventGraphDisplay graph_display(
+			"hb", StringPrintf("hb%llu_%u", m_appId, node_id), p, &m_actions, &m_graphInfo, &m_inputEventGraph, &m_graphWithTimers);
 	displayRacesIfEnabled(p, &graph_display);
 	graph_display.outputGraph(m_actionPrinter, response);
 	addFooter(response);

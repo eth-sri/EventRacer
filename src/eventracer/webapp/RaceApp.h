@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include "base.h"
 #include "CallTraceBuilder.h"
 #include "EventGraph.h"
 #include "EventGraphInfo.h"
@@ -34,7 +35,7 @@ class CodeOutput;
 
 class RaceApp {
 public:
-	RaceApp(const std::string& actionLogFile);
+	RaceApp(int64 app_id, const std::string& actionLogFile);
 	~RaceApp();
 
 	void handleInfo(const std::string& params, std::string* response);
@@ -87,6 +88,8 @@ private:
 	void displaySearchBox(const std::string& var_name, int filter_level, std::string* response) const;
 
 	bool getAccessValue(int event_action_id, int command_id, std::string* value) const;
+
+	int64 m_appId;
 
 	ActionLog m_actions;
 	StringSet m_vars;

@@ -35,6 +35,7 @@ class EventGraphDisplay {
 public:
 	explicit EventGraphDisplay(
 			const std::string& cmd,
+			const std::string& file_name,
 			const URLParams& params,
 			const ActionLog* action_log,
 			const EventGraphInfo* graph_info,
@@ -74,6 +75,7 @@ private:
 	std::vector<Race> m_raceArcs;
 
 	std::string m_linkCmd;
+	std::string m_fileName;
 	URLParams m_params;
 	const ActionLog* m_actionLog;
 	const EventGraphInfo* m_graphInfo;

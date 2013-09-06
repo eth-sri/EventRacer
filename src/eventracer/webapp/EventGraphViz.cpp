@@ -75,12 +75,14 @@ private:
 
 EventGraphDisplay::EventGraphDisplay(
 			const std::string& linkcmd,
+			const std::string& file_name,
 			const URLParams& params,
 			const ActionLog* action_log,
 			const EventGraphInfo* graph_info,
 			const SimpleDirectedGraph* original_graph,
 			const SimpleDirectedGraph* timer_graph)
     : m_linkCmd(linkcmd),
+      m_fileName(file_name),
       m_params(params),
       m_actionLog(action_log),
       m_graphInfo(graph_info),
@@ -137,7 +139,7 @@ void EventGraphDisplay::outputGraph(const ActionLogPrinter* action_printer, std:
 			StringAppendF(&m_graphViz.getArc(race.m_event1, race.m_event2)->m_url, "race?focus=%d&id=%d", m_focusNode, m_raceArcs[i].m_id);
 		}
 	}
-	m_graphViz.output(m_linkCmd, output);
+	m_graphViz.output(m_fileName, output);
 }
 
 void EventGraphDisplay::addNode(const ActionLogPrinter* action_printer, int node_id) {

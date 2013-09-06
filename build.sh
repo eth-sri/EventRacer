@@ -1,4 +1,5 @@
 #!/bin/sh
+mkdir -p /tmp/raceanalyzer
 set -e
 mkdir -p bin
 cd bin

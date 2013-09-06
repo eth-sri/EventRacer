@@ -105,7 +105,7 @@ RaceApp* GetRaceAppFromFetchId(int64 fetch_id) {
 		race_apps.erase(race_apps.begin() + (race_apps.size() - 1));
 	}
 
-	RaceApp* new_app = new RaceApp(PathFromFetchId(fetch_id) + "/ER_actionlog");
+	RaceApp* new_app = new RaceApp(fetch_id, PathFromFetchId(fetch_id) + "/ER_actionlog");
 	race_apps.push_back(std::pair<int64, RaceApp*>(fetch_id, new_app));
 	return new_app;
 }
