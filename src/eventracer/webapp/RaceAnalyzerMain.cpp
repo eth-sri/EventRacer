@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 	callbacks.begin_request = &request_handler;
 
 	if (argc != 2) {
-		fprintf(stderr, "One must specify an input WTF_actionlog file\nUsage %s <file>\n", argv[0]);
+		fprintf(stderr, "One must specify an input ER_actionlog file\nUsage %s <file>\n", argv[0]);
 		return 1;
 	}
 
