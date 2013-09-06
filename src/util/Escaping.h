@@ -14,25 +14,21 @@
    limitations under the License.
  */
 
-#ifndef JSVIEWER_H_
-#define JSVIEWER_H_
+
+#ifndef ESCAPING_H_
+#define ESCAPING_H_
 
 #include <string>
 
-// Viewer for JavaScript code.
-class JsViewer {
-public:
-	JsViewer();
+// Escaping routines. The result is appended to the out string.
+void AppendHTMLEscape(const std::string& str, std::string* out);
+void AppendStringInHTMLEscape(const std::string& str, std::string* out);
+void AppendStringEscape(const std::string& str, std::string* out);
 
-	void jsToHTML(const std::string& js, std::string* out);
+// Escaping routines. The result is returned as a string.
+std::string HTMLEscape(const std::string& str);
+std::string StringInHTMLEscape(const std::string& str);
+std::string StringEscape(const std::string& str);
 
-private:
-	void jsLineToHTML(int line_number, const std::string& line, std::string* out);
 
-
-	void jsLineContinuation(int line_number, int scope_depth, std::string* out);
-
-	int m_numLinesNoNumber;
-};
-
-#endif /* JSVIEWER_H_ */
+#endif /* ESCAPING_H_ */

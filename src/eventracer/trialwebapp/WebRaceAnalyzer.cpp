@@ -24,6 +24,7 @@
 #include "base.h"
 #include "stringprintf.h"
 #include "mongoose.h"
+#include "Escaping.h"
 #include "RaceApp.h"
 
 #include "UrlEncoding.h"
@@ -71,9 +72,9 @@ void HandleFetch(std::string params, std::string* reply) {
 
 	std::string command;
 
-	StringAppendF(&command, "%s %s %s",
+	StringAppendF(&command, "%s \"%s\" %s",
 			FLAGS_webkit_browser_exec.c_str(),
-			url.c_str(),
+			StringEscape(url).c_str(),
 			PathFromFetchId(fetch_id).c_str());
 	printf("Running command: \"%s\"\n", command.c_str());
 

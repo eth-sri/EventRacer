@@ -24,6 +24,9 @@
 std::string serializeIntVector(const std::vector<int>& values);
 void parseIntVector(const std::string& s, std::vector<int>* result);
 
+std::string URLDecode(const std::string& url_str, bool is_form_url_encoded);
+std::string URLEncode(const std::string& url_str);
+
 class URLParams {
 public:
 	void parse(const std::string& s);

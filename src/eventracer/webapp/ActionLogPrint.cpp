@@ -17,6 +17,8 @@
 #include "ActionLogPrint.h"
 #include "stringprintf.h"
 
+#include "Escaping.h"
+
 using std::string;
 
 FunctionNamePrinter::FunctionNamePrinter(
@@ -83,7 +85,7 @@ void CodeOutput::outputStatement(const std::string& text) {
 			sscanf(text.c_str(), "Exec (fn=%d #%d) line %d-%d", &fnid, &jsid, &line1, &line2) == 4) {
 		StringAppendF(m_out,
 				"<b>%s</b> <a href=\"js?jsid=%d#l%d\">[link to JS]</a> ",
-				m_FnNamePrinter.getFunctionName(fnid), jsid, line1);
+				HTMLEscape(m_FnNamePrinter.getFunctionName(fnid)).c_str(), jsid, line1);
 	}
 	m_out->append(text);
 
@@ -110,19 +112,23 @@ void ActionLogPrinter::printEventActionDetails(int event_action_id, std::string*
 	for (size_t i = 0; i < event.m_commands.size(); ++i) {
 		const ActionLog::Command& cmd = event.m_commands[i];
 		if (cmd.m_cmdType == ActionLog::ENTER_SCOPE) {
-			code.outputScopeEnter(m_scopes->getString(cmd.m_location));
+			code.outputScopeEnter(
+					HTMLEscape(m_scopes->getString(cmd.m_location)).c_str());
 		} else if (cmd.m_cmdType == ActionLog::EXIT_SCOPE) {
 			code.outputScopeExit();
 		} else if (cmd.m_cmdType == ActionLog::READ_MEMORY) {
-			code.outputStatement(StringPrintf("read <b>%s</b>", m_variables->getString(cmd.m_location)));
+			code.outputStatement(StringPrintf("read <b>%s</b>",
+					HTMLEscape(m_variables->getString(cmd.m_location)).c_str()));
 		} else if (cmd.m_cmdType == ActionLog::WRITE_MEMORY) {
-			code.outputStatement(StringPrintf("write <b>%s</b>", m_variables->getString(cmd.m_location)));
+			code.outputStatement(StringPrintf("write <b>%s</b>",
+					HTMLEscape(m_variables->getString(cmd.m_location)).c_str()));
 		} else if (cmd.m_cmdType == ActionLog::TRIGGER_ARC) {
 			code.outputStatement(StringPrintf("start <a href=\"code?focus=%d\">%s</a>",
 					cmd.m_location,
 					getEventActionSummaryForLink(cmd.m_location).c_str()));
 		} else if (cmd.m_cmdType == ActionLog::MEMORY_VALUE) {
-			code.outputStatement(StringPrintf("value <b>%s</b>", m_memValues->getString(cmd.m_location)));
+			code.outputStatement(StringPrintf("value <b>%s</b>",
+					HTMLEscape(m_memValues->getString(cmd.m_location)).c_str()));
 		} else {
 			code.outputStatement("Unknown");
 		}
@@ -130,19 +136,8 @@ void ActionLogPrinter::printEventActionDetails(int event_action_id, std::string*
 }
 
 namespace {
-void printEscaped(const string& input, string* out) {
-	for (size_t i = 0; i < input.size(); ++i) {
-		if (input[i] == '\\') {
-			out->append("\\\\");
-		} else if (input[i] == '\"') {
-			out->append("\\\"");
-		} else {
-			out->push_back(input[i]);
-		}
-	}
-}
 
-void addFirstChars(const string& input, string* out) {
+void addFirstCharsEscaped(const string& input, string* out) {
 	if (input.size() > 28) {
 		size_t open_bracket = input.find('[');
 		size_t close_bracket = input.find(']');
@@ -155,13 +150,13 @@ void addFirstChars(const string& input, string* out) {
 				input_copy = input_copy.substr(0, 27);
 				input_copy.append("..");
 			}
-			printEscaped(input_copy, out);
+			AppendStringEscape(input_copy, out);
 		} else {
-			printEscaped(input.substr(0, 26), out);
+			AppendStringEscape(input.substr(0, 26), out);
 			out->append("...");
 		}
 	} else {
-		printEscaped(input, out);
+		AppendStringEscape(input, out);
 	}
 }
 }  // namespace
@@ -174,7 +169,7 @@ void ActionLogPrinter::getEventActionSummary(int event_action_id, const char* se
 		const ActionLog::Command& cmd = event.m_commands[i];
 		if (cmd.m_cmdType == ActionLog::ENTER_SCOPE) {
 			if (num_outs != 0) out->append(separator);
-			addFirstChars(m_scopes->getString(cmd.m_location), out);
+			addFirstCharsEscaped(m_scopes->getString(cmd.m_location), out);
 			if (++num_outs == 3) break;
 		}
 	}
@@ -182,7 +177,7 @@ void ActionLogPrinter::getEventActionSummary(int event_action_id, const char* se
 		const ActionLog::Command& cmd = event.m_commands[i];
 		if (cmd.m_cmdType == ActionLog::WRITE_MEMORY) {
 			if (num_outs != 0) out->append(separator);
-			addFirstChars(StringPrintf("write %s", m_variables->getString(cmd.m_location)), out);
+			addFirstCharsEscaped(StringPrintf("write %s", m_variables->getString(cmd.m_location)), out);
 			if (++num_outs == 4) return;
 		}
 	}
@@ -190,7 +185,7 @@ void ActionLogPrinter::getEventActionSummary(int event_action_id, const char* se
 		const ActionLog::Command& cmd = event.m_commands[i];
 		if (cmd.m_cmdType == ActionLog::READ_MEMORY) {
 			if (num_outs != 0) out->append(separator);
-			addFirstChars(StringPrintf("read %s", m_variables->getString(cmd.m_location)), out);
+			addFirstCharsEscaped(StringPrintf("read %s",  m_variables->getString(cmd.m_location)), out);
 			if (++num_outs == 4) return;
 		}
 	}
@@ -201,7 +196,8 @@ std::string ActionLogPrinter::getEventActionSummaryForLink(int event_action_id) 
 	for (size_t i = 0; i < event.m_commands.size(); ++i) {
 		const ActionLog::Command& cmd = event.m_commands[i];
 		if (cmd.m_cmdType == ActionLog::ENTER_SCOPE) {
-			return StringPrintf("event action %d : %s", event_action_id, m_scopes->getString(cmd.m_location));
+			return StringPrintf("event action %d : %s", event_action_id,
+					HTMLEscape(m_scopes->getString(cmd.m_location)).c_str());
 		}
 	}
 	return StringPrintf("event action %d (not instrumented, e.g. rendering)", event_action_id);

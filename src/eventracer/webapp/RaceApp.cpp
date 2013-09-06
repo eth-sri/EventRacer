@@ -22,6 +22,7 @@
 #include "strutil.h"
 
 #include "ActionLogPrint.h"
+#include "Escaping.h"
 #include "EventGraphViz.h"
 #include "GraphFix.h"
 #include "GraphViz.h"
@@ -114,10 +115,10 @@ void addHeader(string* response, const string& title) {
 			"<html>"
 			"<head><title>EventRacer: %s</title>"
 			  "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
-			"</head>", title.c_str());
+			"</head>", HTMLEscape(title).c_str());
 	response->append("<body>");
 	addCSS(response);
-	StringAppendF(response, "<h1>%s</h1>", title.c_str());
+	StringAppendF(response, "<h1>%s</h1>", HTMLEscape(title).c_str());
 }
 
 void addFooter(string* response) {
@@ -237,7 +238,7 @@ void RaceApp::handleInfo(const std::string& params, std::string* response) {
 			"of the graph, click on the nodes.</p>"
 			""
 			"<p>Finally, one can search by memory location name.</p></div>",
-			m_fileName.c_str(),
+			HTMLEscape(m_fileName).c_str(),
 			m_vars.numEntries(), m_actions.maxEventActionId());
 	displaySearchBox("", 0, response);
 
@@ -262,7 +263,7 @@ void RaceApp::handleVarList(const std::string& params, std::string* response) {
 			}
 			URLParams p1 = p;
 			p1.setInt("filter_level", i);
-			StringAppendF(response, "<a href=\"varlist?%s\">", p1.toString().c_str());
+			StringAppendF(response, "<a href=\"varlist?%s\">", p1.toString().c_str());  // p1.toString() URL escapes.
 			switch (i) {
 			case 0: response->append("[all]"); break;
 			case 1: response->append(""); break;
@@ -314,14 +315,15 @@ void RaceApp::handleVarList(const std::string& params, std::string* response) {
 
 
 			table.setColumn(VAR_TYPE, VarTypeByName(m_vars.getString(it->first)));
-			table.setColumn(VAR_NAME, ShortenStr(m_vars.getString(it->first), 64));
+			table.setColumn(VAR_NAME, HTMLEscape(ShortenStr(m_vars.getString(it->first), 64)));
 			table.setColumnF(NUM_RACES, "%d", static_cast<int>(data.m_allRaces.size()));
 			table.setColumnF(NUM_UNCOVERED_RACES, "%d", static_cast<int>(data.m_noParentRaces.size()));
 			table.setColumn(TAGS, getVarTagsString(var_id));
 
 
 			std::string extra;
-			StringAppendF(&extra, "<b>Uncovered races:</b> (click race ids for details) %s<br>", raceSetStr(data.m_noParentRaces).c_str());
+			StringAppendF(&extra, "<b>Uncovered races:</b> (click race ids for details) %s<br>",
+					raceSetStr(data.m_noParentRaces).c_str());
 			{
 				std::vector<int> covered_races;
 				std::set_difference(data.m_allRaces.begin(), data.m_allRaces.end(),
@@ -329,12 +331,16 @@ void RaceApp::handleVarList(const std::string& params, std::string* response) {
 						std::back_inserter(covered_races));
 				StringAppendF(&extra, "<b>Covered races:</b> %s %s<br>",
 						raceSetStr(covered_races).c_str(),
-						data.m_parentRaces.empty() ? "" : StringPrintf("(covered by %s)", getRaceVars(data.m_parentRaces).c_str()).c_str());
+						data.m_parentRaces.empty() ? "" : StringPrintf("(covered by %s)",
+								getRaceVars(data.m_parentRaces).c_str()).c_str());
 			}
-			StringAppendF(&extra, "<b>Values occurring in the trace:</b> %s<br>", m_raceTags.getVarDefSet(it->first).c_str());
-			StringAppendF(&extra, "List all <a href=\"var?id=%d\" title=\"%s\">event actions</a> with reads and writes of variable<br>",
+			StringAppendF(&extra,
+					"<b>Values occurring in the trace:</b> %s<br>",
+					HTMLEscape(m_raceTags.getVarDefSet(it->first)).c_str());
+			StringAppendF(&extra,
+					"List all <a href=\"var?id=%d\" title=\"%s\">event actions</a> with reads and writes of variable<br>",
 					it->first,
-					m_vars.getString(it->first));
+					HTMLEscape(m_vars.getString(it->first)).c_str());
 
 			table.writeExpandableRow(level == 3 ? "k" : (level == 5 ? "s" : "u"), extra);
 		}
@@ -359,7 +365,8 @@ void RaceApp::handleVarDetails(const std::string& params, std::string* response)
 	string var_name = m_vars.getString(var_id);
 	addHeader(response, var_name);
 
-	StringAppendF(response, "<h2>List of reads and writes of %s in their trace order.</h2>", var_name.c_str());
+	StringAppendF(response, "<h2>List of reads and writes of %s in their trace order.</h2>",
+			HTMLEscape(var_name).c_str());
 
 	HTMLTable::addJavaScript(response);
 
@@ -405,7 +412,7 @@ void RaceApp::handleVarDetails(const std::string& params, std::string* response)
 			if (!call_trace.empty()) {
 				const ActionLog::EventAction& event = m_actions.event_action(access.m_eventActionId);
 				StringAppendF(&card, "  %s\n   ...\n",
-						m_scopes.getString(event.m_commands[call_trace[0]].m_location));
+						HTMLEscape(m_scopes.getString(event.m_commands[call_trace[0]].m_location)).c_str());
 			}
 		} else {
 			card.append("   ...\n");
@@ -415,7 +422,7 @@ void RaceApp::handleVarDetails(const std::string& params, std::string* response)
 		std::string value;
 		if (getAccessValue(access.m_eventActionId, access.m_commandIdInEvent, &value)) {
 			StringAppendF(&card, "    %s <b>%s</b>\n",
-					is_read ? "Read value" : "Write value", value.c_str());
+					is_read ? "Read value" : "Write value", HTMLEscape(value).c_str());
 		} else {
 			StringAppendF(&card, "    %s\n", is_read ? "Read" : "Write");
 		}
@@ -437,10 +444,10 @@ void RaceApp::handleVarDetails(const std::string& params, std::string* response)
 		// Show call trace if the row is expanded.
 		StringAppendF(&traces, "<h4>Call trace of a %s %s in event action %d</h4>"
 				"<p>Only the first %s in a event action is recorded.</p>",
-				is_read ? "read from" : "write to", var_name.c_str(), access.m_eventActionId,
+				is_read ? "read from" : "write to", HTMLEscape(var_name).c_str(), access.m_eventActionId,
 				is_read ? "read" : "write");
 		printVarAccessCallTrace(access, StringPrintf(
-						"%s <b>%s</b>", is_read ? "Read" : "Write", var_name.c_str()), &traces);
+						"%s <b>%s</b>", is_read ? "Read" : "Write", HTMLEscape(var_name).c_str()), &traces);
 	}
 
 	table.writeFooter(true);
@@ -467,7 +474,7 @@ void RaceApp::handleRaceDetails(const std::string& params, std::string* response
 	string var_name = m_vars.getString(race.m_varId);
 
 	addHeader(response, StringPrintf("Race #%d on %s",
-			race_id, var_name.c_str()));
+			race_id, HTMLEscape(var_name).c_str()));
 
 	showRaceInfo(race_id, response);
 
@@ -498,7 +505,7 @@ void RaceApp::handleRaceDetails(const std::string& params, std::string* response
 		printVarAccessCallTrace(
 				*loc1,
 				StringPrintf("%s <b>%s</b>",
-						VarsInfo::RaceInfo::AccessStr(race.m_access1), var_name.c_str()),
+						VarsInfo::RaceInfo::AccessStr(race.m_access1), HTMLEscape(var_name).c_str()),
 				&s);
 		table.setColumn(1, "<br>" + s + "<br>");
 		table.writeRow("u");
@@ -508,7 +515,7 @@ void RaceApp::handleRaceDetails(const std::string& params, std::string* response
 		printVarAccessCallTrace(
 				*loc2,
 				StringPrintf("%s <b>%s</b>",
-						VarsInfo::RaceInfo::AccessStr(race.m_access2), var_name.c_str()),
+						VarsInfo::RaceInfo::AccessStr(race.m_access2), HTMLEscape(var_name).c_str()),
 				&s);
 		table.setColumn(1, "<br>" + s + "<br>");
 		table.writeRow("u");
@@ -641,7 +648,9 @@ void RaceApp::handleUndefRaces(const std::string& params, std::string* response)
 
 	const VarsInfo::VarData& data = var_it->second;
 	string var_name = m_vars.getString(var_id);
-	addHeader(response, StringPrintf("Races with the first write to %s", m_vars.getString(var_id)));
+	addHeader(response,
+			StringPrintf("Races with the first write to %s",
+					HTMLEscape(m_vars.getString(var_id)).c_str()));
 
 	if (data.numReads() == 0) {
 		response->append("<h1>No reads</h1>");
@@ -653,14 +662,14 @@ void RaceApp::handleUndefRaces(const std::string& params, std::string* response)
 				"<p>This list includes all the reads from %s in relation to its first write. "
 				"This is useful to look for reads that may read an uninitialized value. "
 				"The developer must then manually inspect if all reads in uncovered races correctly"
-				" handle undefined value.</p>", var_name.c_str());
+				" handle undefined value.</p>", HTMLEscape(var_name).c_str());
 
 		int node1 = data.getWriteWithIndex(0)->m_eventActionId;
 		StringAppendF(response,
 				"<h2>Initialization</h2><p>The variable is initialized (first written) in event action %d</p>", node1);
 
 		printVarAccessCallTrace(*data.getWriteWithIndex(0),
-				StringPrintf("Write <b>%s</b>", var_name.c_str()), response);
+				StringPrintf("Write <b>%s</b>", HTMLEscape(var_name).c_str()), response);
 
 		StringAppendF(response,
 				"<h2>List of reads in relation to initialization</h2>");
@@ -705,7 +714,8 @@ void RaceApp::handleUndefRaces(const std::string& params, std::string* response)
 
 			std::string read_data;
 			displayNodeRelation(node1, node2, cmd_in_node2, &read_data);
-			printVarAccessCallTrace(data.m_accesses[i], StringPrintf("Read <b>%s</b>", var_name.c_str()), &read_data);
+			printVarAccessCallTrace(data.m_accesses[i],
+					StringPrintf("Read <b>%s</b>", HTMLEscape(var_name).c_str()), &read_data);
 			table.writeExpandableRow( (node2before1 || ordered || covered) ? "u" : "s", read_data);
 		}
 
@@ -734,7 +744,7 @@ void RaceApp::handleRaceChildren(const std::string& params, std::string* respons
 		for (size_t i = 0; i < data.m_allRaces.size(); ++i) {
 			m_vinfo.getDirectRaceChildren(data.m_allRaces[i], child_race_location != 0, &races);
 		}
-		addHeader(response, StringPrintf("Child races of %s", m_vars.getString(var_id)));
+		addHeader(response, StringPrintf("Child races of %s", HTMLEscape(m_vars.getString(var_id)).c_str()));
 	} else {
 		int race_id = p.getIntDefault("race", -1);
 		if (race_id < 0 || race_id >= static_cast<int>(m_vinfo.races().size())) {
@@ -759,7 +769,7 @@ void RaceApp::handleRaceChildren(const std::string& params, std::string* respons
 			}
 			URLParams p1 = p;
 			p1.setInt("child_loc", i);
-			StringAppendF(response, "<a href=\"child?%s\">", p1.toString().c_str());
+			StringAppendF(response, "<a href=\"child?%s\">", p1.toString().c_str());  // URLParams.toString is URL encoded.
 			switch (i) {
 			case 0: response->append("[anywhere (var is not synchronizing)]"); break;
 			case 1: response->append("[only later event actions (var is just lazy initialized)]"); break;
@@ -805,15 +815,15 @@ void RaceApp::handleRaceChildren(const std::string& params, std::string* respons
 				num_rows % 2,
 				RaceTags::tagsToString(tags).c_str(),
 				it->first,
-				m_vars.getString(it->first),
-				ShortenStr(m_vars.getString(it->first), 64).c_str(),
+				HTMLEscape(m_vars.getString(it->first)).c_str(),
+				HTMLEscape(ShortenStr(m_vars.getString(it->first), 64)).c_str(),
 				num_reads,
 				num_writes,
 				it->first, data.m_childRaces.size() == 0 ? "?" : StringPrintf("%d", static_cast<int>(data.m_childRaces.size())).c_str(),
 				raceSetStr(it->second).c_str(),
 				it->first,
 				with_undefined_init_race ? "initialization race" : "",
-				m_raceTags.getVarDefSet(it->first).c_str());
+				HTMLEscape(m_raceTags.getVarDefSet(it->first)).c_str());
 	}
 
 	response->append("</table>");
@@ -859,7 +869,7 @@ void RaceApp::displaySearchBox(const std::string& var_name, int filter_level, st
 			"  <input type=\"text\" name=\"varname\" value=\"%s\">\n"
 			"  <input type=\"hidden\" name=\"filter_level\" value=\"%d\">\n"
 			"  <input type=\"submit\" value=\"Search\">\n"
-			"</form>\n", var_name.c_str(), filter_level);
+			"</form>\n", HTMLEscape(var_name).c_str(), filter_level);
 }
 
 
@@ -873,7 +883,9 @@ std::string RaceApp::getRaceVars(const std::vector<int>& races) const {
 	for (std::set<int>::const_iterator it = vars.begin(); it != vars.end(); ++it) {
 		if (it != vars.begin()) result.append(" ");
 		StringAppendF(&result, "<a href=\"var?id=%d\" title=\"%s\">%s</a>",
-				*it, m_vars.getString(*it), ShortenStr(m_vars.getString(*it), 32).c_str());
+				*it,
+				HTMLEscape(m_vars.getString(*it)).c_str(),
+				HTMLEscape(ShortenStr(m_vars.getString(*it), 32)).c_str());
 	}
 	return result;
 }
@@ -959,7 +971,7 @@ void RaceApp::showRaceInfo(int race_id, std::string* response) const {
 						race.m_coveredBy,
 						parent_race.TypeStr(),
 						parent_race.m_varId,
-						m_vars.getString(parent_race.m_varId));
+						HTMLEscape(m_vars.getString(parent_race.m_varId)).c_str());
 			}
 			response->append(")");
 		}
@@ -970,7 +982,7 @@ void RaceApp::showRaceInfo(int race_id, std::string* response) const {
 				race.m_coveredBy,
 				parent_race.TypeStr(),
 				parent_race.m_varId,
-				m_vars.getString(parent_race.m_varId));
+				HTMLEscape(m_vars.getString(parent_race.m_varId)).c_str());
 	}
 
 	if (m_raceTags.isNetworkResponseRace(race_id)) {
@@ -1012,7 +1024,7 @@ void RaceApp::printVarAccessCallTrace(
 
 	std::string value;
 	if (getAccessValue(var_access.m_eventActionId, var_access.m_commandIdInEvent, &value)) {
-		o.outputStatement(StringPrintf("value <b>%s</b>", value.c_str()));
+		o.outputStatement(StringPrintf("value <b>%s</b>", HTMLEscape(value).c_str()));
 	}
 }
 
@@ -1135,7 +1147,7 @@ void RaceApp::displayNodeRelation(int node1, int node2, int cmd_in_node2, std::s
 			const VarsInfo::RaceInfo& race = m_vinfo.races()[race_chain[j]];
 			const char* var_name = m_vars.getString(race.m_varId);
 			StringAppendF(response, "<a href=\"var?id=%d\" title=\"%s\">%s</a>",
-					race.m_varId, var_name, var_name);
+					race.m_varId, HTMLEscape(var_name).c_str(), HTMLEscape(var_name).c_str());
 			response->append("<br>");
 			showRaceLink(race_chain[j], response);
 			response->append("</td><td>");

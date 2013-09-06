@@ -14,10 +14,62 @@
    limitations under the License.
  */
 
+#include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "UrlEncoding.h"
 #include "stringprintf.h"
+
+
+namespace {
+int HexToI(char c) {
+	return isdigit(c) ? c - '0' : c - 'W';
+}
+}
+
+std::string URLDecode(const std::string& url_str, bool is_form_url_encoded) {
+	std::string dst;
+
+	const char* src = url_str.c_str();
+	int src_len = url_str.size();
+	for (int i = 0; i < src_len; ++i) {
+		if (src[i] == '%' && i < src_len - 2 &&
+				isxdigit(* (src + i + 1)) &&
+				isxdigit(* (src + i + 2))) {
+			char a = tolower(* (src + i + 1));
+			char b = tolower(* (src + i + 2));
+			dst.push_back( static_cast<char>((HexToI(a) << 4) | HexToI(b)) );
+			i += 2;
+		} else if (is_form_url_encoded && src[i] == '+') {
+			dst.push_back(' ');
+		} else {
+			dst.push_back(src[i]);
+		}
+	}
+
+	return dst;
+}
+
+std::string URLEncode(const std::string& enc_str) {
+	std::string dst;
+	static const char *dont_escape = "._-$,;~()";
+	static const char *hex = "0123456789abcdef";
+
+	const char* src = enc_str.c_str();
+	for (; *src != '\0'; ++src) {
+		if (isalnum(*src) ||
+			strchr(dont_escape, *src) != NULL) {
+			dst.push_back(*src);
+		} else {
+			dst.push_back('%');
+			unsigned char ch = *src;
+			dst.push_back(hex[ch >> 4]);
+			dst.push_back(hex[ch & 0xf]);
+		}
+	}
+	return dst;
+}
 
 std::string serializeIntVector(const std::vector<int>& values) {
 	std::string result;
@@ -51,7 +103,7 @@ void URLParams::parse(const std::string& s) {
 				(end_pos == std::string::npos) ? std::string::npos : (end_pos - start_pos));
 		size_t eq_pos = sub.find("=");
 		if (eq_pos != std::string::npos) {
-			m_decodedMap[sub.substr(0, eq_pos)] = sub.substr(eq_pos + 1);
+			m_decodedMap[sub.substr(0, eq_pos)] = URLDecode(sub.substr(eq_pos + 1), true);
 		}
 		if (end_pos == std::string::npos) break;
 		start_pos = end_pos + 1;
@@ -62,7 +114,7 @@ std::string URLParams::toString() const {
 	std::string result;
 	for (DecodedMap::const_iterator it = m_decodedMap.begin(); it != m_decodedMap.end(); ++it) {
 		if (!result.empty()) result += "&";
-		StringAppendF(&result, "%s=%s", it->first.c_str(), it->second.c_str());
+		StringAppendF(&result, "%s=%s", it->first.c_str(), URLEncode(it->second.c_str()).c_str());
 	}
 	return result;
 }

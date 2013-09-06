@@ -17,6 +17,8 @@
 #include "JsViewer.h"
 #include "stringprintf.h"
 
+#include "Escaping.h"
+
 JsViewer::JsViewer() {}
 
 void JsViewer::jsToHTML(const std::string& js, std::string* out) {
@@ -52,7 +54,7 @@ void JsViewer::jsLineToHTML(int line_number, const std::string& js, std::string*
 		num_scopes += (js[i] == '{');
 	}
 	if (num_scopes <= 2) {
-		jsEscapeToHTML(js, out);
+		AppendHTMLEscape(js, out);
 		return;
 	}
 	// Try to beautify the line:
@@ -76,7 +78,7 @@ void JsViewer::jsLineToHTML(int line_number, const std::string& js, std::string*
 			nextc = js[i + 1];
 		}
 		if (c == '}') {
-			jsEscapeToHTML(current_line, out);
+			AppendHTMLEscape(current_line, out);
 			current_line.clear();
 			--scope;
 			jsLineContinuation(line_number, scope, out);
@@ -85,12 +87,12 @@ void JsViewer::jsLineToHTML(int line_number, const std::string& js, std::string*
 				current_line.push_back(nextc);
 				++i;
 			}
-			jsEscapeToHTML(current_line, out);
+			AppendHTMLEscape(current_line, out);
 			jsLineContinuation(line_number, scope, out);
 			current_line.clear();
 		} else if (c == '{' || c == ';') {
 			current_line.push_back(c);
-			jsEscapeToHTML(current_line, out);
+			AppendHTMLEscape(current_line, out);
 			if (c=='{') { ++scope; }
 			jsLineContinuation(line_number, scope, out);
 			current_line.clear();
@@ -99,7 +101,7 @@ void JsViewer::jsLineToHTML(int line_number, const std::string& js, std::string*
 		}
 
 	}
-	jsEscapeToHTML(current_line, out);
+	AppendHTMLEscape(current_line, out);
 }
 
 void JsViewer::jsLineContinuation(int line_number, int scope_depth, std::string* out) {
@@ -115,29 +117,4 @@ void JsViewer::jsLineContinuation(int line_number, int scope_depth, std::string*
 	for (int i = 0; i < scope_depth; ++i) out->append("  ");
 }
 
-void JsViewer::jsEscapeToHTML(const std::string& js, std::string* out) {
-	bool in_utf8_char = false;
-	for (size_t i = 0; i < js.size(); ++i) {
-		char c = js[i];
-		if (c >= 128) {
-			in_utf8_char = true;
-			out->push_back(c);
-			continue;
-		}
-		if (in_utf8_char) {
-			in_utf8_char = false;
-			out->push_back(c);
-			continue;
-		}
-		if (c == '<') {
-			out->append("&lt;");
-		} else if (c == '>') {
-			out->append("&gt;");
-		} else if (c == '&') {
-			out->append("&amp;");
-		} else {
-			out->push_back(c);
-		}
-	}
-}
 
