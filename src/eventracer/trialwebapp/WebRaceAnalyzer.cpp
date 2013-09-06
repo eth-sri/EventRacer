@@ -17,11 +17,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <errno.h>
 #include <sys/stat.h>
 
 #include "gflags/gflags.h"
 
 #include "base.h"
+#include "mutex.h"
 #include "stringprintf.h"
 #include "mongoose.h"
 #include "Escaping.h"
@@ -35,7 +38,7 @@ DECLARE_string(dot_temp_dir);
 
 DEFINE_string(action_log_dir, "/home/veselin/wk/alog",
 		"Directory with action log files.");
-DEFINE_string(webkit_browser_exec, "/home/veselin/wk/linux_browser/fetch_with_auto_explore.sh",
+DEFINE_string(webkit_browser_exec, "/home/veselin/gitwk/eventracer/fetch_with_auto_explore.sh",
 		"Executable for the webkit browser.");
 
 DEFINE_int32(num_cached_race_files, 5, "Maximum number of race files stored in memory.");
@@ -47,14 +50,21 @@ std::string PathFromFetchId(int64 fetch_id) {
 }
 
 int64 GenerateFetchId() {
-	struct stat st;
 	int64 fetch_id;
 	std::string path;
-	do {
+	for (;;) {
 		fetch_id = GetCurrentTimeMicros();
 		path = PathFromFetchId(fetch_id);
-	} while (stat(path.c_str(), &st) == 0);
-	mkdir(path.c_str(), 0775);
+		int error = mkdir(path.c_str(), 0775);
+		if (error == 0) break;  // Directory was created successfully.
+		if (error == EEXIST) {
+			// Random sleep.
+			usleep(rand() % 1000 + 1);
+		} else {
+			fprintf(stderr, "File exists\n");
+			exit(1);
+		}
+	}
 	return fetch_id;
 }
 
@@ -84,15 +94,18 @@ void HandleFetch(std::string params, std::string* reply) {
 
 	StringAppendF(reply,
 			"<html><head></head><body>"
-			"<p>Fetched %s with id=%lld. (system code %d)</p>"
-			"<p>To see a log from it, click <a href=\"/view/%lld/\">here</a></p>"
+			"<p>URL Explored: '%s'.  Exploration id=%lld. (system code %d)</p>"
+			"<h2><a href=\"/view/%lld/varlist\" target=\"_blank\">List uncovered races in %s</a></h2>"
+			"<p><a href=\"/view/%lld/\" target=\"_blank\">More exploration info</a></p>"
 			"</body></html>",
-			url.c_str(), fetch_id, system_code, fetch_id);
+			HTMLEscape(url).c_str(), fetch_id, system_code, fetch_id, HTMLEscape(url).c_str(), fetch_id);
 }
 
+mutex race_apps_mutex;
 std::vector<std::pair<int64, RaceApp*> > race_apps;
 
 RaceApp* GetRaceAppFromFetchId(int64 fetch_id) {
+	lock_guard<mutex> mutex_lock(race_apps_mutex);  // Keep the mutex locked while the log file is loading.
 	for (size_t i = 0; i < race_apps.size(); ++i) {
 		if (race_apps[i].first == fetch_id) {
 			// TODO: move the app forward as the most recently used app.
@@ -124,10 +137,12 @@ static int request_handler(struct mg_connection *conn) {
 		HandleFetch(params, &reply);
 	} else if (strncmp(request_path.c_str(), "/view/", 6) == 0) {
 		int64 fetch_id;
-		if (sscanf(request_path.c_str(), "/view/%lld/", &fetch_id) == 1) {
+		if (sscanf(request_path.c_str(), "/view/%lld", &fetch_id) == 1) {
 			RaceApp* race_app = GetRaceAppFromFetchId(fetch_id);
 			if (race_app) {
 				size_t pos = request_path.find("/", 6);
+				if (pos == std::string::npos) return 0;
+
 				request_path = request_path.substr(pos, request_path.size() - pos);
 				printf("Req path: %s\n", request_path.c_str());
 				if (request_path == "/info" || request_path == "/") {
@@ -198,10 +213,6 @@ int main(int argc, char* argv[]) {
 	const char *options[] = {
 			"listening_ports", FLAGS_port.c_str(),
 			"document_root", FLAGS_dot_temp_dir.c_str(),
-
-			// Note: currently we cannot handle more than one server thread safely.
-			// This is because GenerateFetchId/GetRaceAppFromFetchId are not thread-safe.
-			"num_threads", "1",
 			NULL};
 
 	// Prepare callbacks structure. We have only one callback, the rest are NULL.
