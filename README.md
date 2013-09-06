@@ -29,7 +29,7 @@ Checking a website for races
 
 Read our paper "Effective Race Detection for Event-Driven Programs" to understand the meaning of
 uncovered races and the race filters. Enjoy the tool and develop web applications that provide
-great user experience.
+a great user experience.
 
 
 Credits
