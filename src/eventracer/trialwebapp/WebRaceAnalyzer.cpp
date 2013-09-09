@@ -61,11 +61,20 @@ int64 GenerateFetchId() {
 			// Random sleep.
 			usleep(rand() % 1000 + 1);
 		} else {
-			fprintf(stderr, "File exists\n");
+			fprintf(stderr, "Error from file system.\n");
 			exit(1);
 		}
 	}
 	return fetch_id;
+}
+
+bool FileExists(std::string file_name) {
+	struct stat s;
+	return stat(file_name.c_str(), &s) == 0;
+}
+
+std::string ERLogFileNameFromFetchID(int64 fetch_id) {
+	return PathFromFetchId(fetch_id) + "/ER_actionlog";
 }
 
 void HandleFetch(std::string params, std::string* reply) {
@@ -92,13 +101,27 @@ void HandleFetch(std::string params, std::string* reply) {
 	int system_code = system(command.c_str());
 	// Ignore system code.
 
-	StringAppendF(reply,
-			"<html><head></head><body>"
-			"<p>URL Explored: '%s'.  Exploration id=%lld. (system code %d)</p>"
-			"<h2><a href=\"/view/%lld/varlist\" target=\"_blank\">List uncovered races in %s</a></h2>"
-			"<p><a href=\"/view/%lld/\" target=\"_blank\">More exploration info</a></p>"
-			"</body></html>",
-			HTMLEscape(url).c_str(), fetch_id, system_code, fetch_id, HTMLEscape(url).c_str(), fetch_id);
+	if (FileExists(ERLogFileNameFromFetchID(fetch_id))) {
+		StringAppendF(reply,
+				"<html><head></head><body>"
+				"<center>"
+				"  <p>The website %s was explored</p>"
+				"  <h2><a href=\"/view/%lld/varlist\" target=\"_blank\">Click to view races</a></h2>"
+				"  <p>(opens a new window)</p>"
+				"  <!-- Return Code = %d , FetchID = %lld -->"
+				"</center>"
+				"</body></html>",
+				HTMLEscape(url).c_str(), fetch_id, system_code, fetch_id);
+	} else {
+		StringAppendF(reply,
+				"<html><head></head><body>"
+				"<center>"
+				"  <p>Failed to fetch %s/p>"
+				"  <!-- Return Code = %d , FetchID = %lld -->"
+				"</center>"
+				"</body></html>",
+				HTMLEscape(url).c_str(), system_code, fetch_id);
+	}
 }
 
 mutex race_apps_mutex;
@@ -118,7 +141,11 @@ RaceApp* GetRaceAppFromFetchId(int64 fetch_id) {
 		race_apps.erase(race_apps.begin() + (race_apps.size() - 1));
 	}
 
-	RaceApp* new_app = new RaceApp(fetch_id, PathFromFetchId(fetch_id) + "/ER_actionlog");
+
+	std::string file_name = ERLogFileNameFromFetchID(fetch_id);
+	if (!FileExists(file_name)) return NULL;
+
+	RaceApp* new_app = new RaceApp(fetch_id, file_name);
 	race_apps.push_back(std::pair<int64, RaceApp*>(fetch_id, new_app));
 	return new_app;
 }
