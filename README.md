@@ -9,13 +9,16 @@ How to compile (on Linux)
 
 Install prerequisites
    * Google Sparse Hash (http://code.google.com/p/sparsehash/downloads/list)
+      * ```sudo apt-get install sparsehash```
    * Google Flags 2.0 (https://code.google.com/p/gflags/downloads/list)
+      * Build this from source, download file: gflags-2.0.tar.gz
    * CMake 2.8 (http://www.cmake.org/)
+      * ```sudo apt-get install cmake```
    * GraphViz is needed to display happens-before graphs.
-      * <code>sudo apt-get install graphviz</code>
+      * ```sudo apt-get install graphviz```
 
 Compiling:
-   * Run: ./build.sh
+   * Run: ```./build.sh```
 
 Running
 -------
@@ -35,5 +38,5 @@ a great user experience.
 Credits
 -------
 
-The EventRacer code includes the mongoose web server (BSD license) and stringprintf utilities (Apache license).
+The EventRacer code includes the mongoose web server (BSD license) and stringprintf and mutex utilities from Google (Apache license).
 
