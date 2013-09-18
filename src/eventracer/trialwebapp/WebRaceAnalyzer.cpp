@@ -88,8 +88,7 @@ bool FixHttpInUrl(std::string* url) {
 	if (lcase_url.find("http://http:") == 0 ||
 		lcase_url.find("http://https:") == 0) {
 		*url = url->substr(7, url->size() - 7);
-	} else if (lcase_url.find("http://") != 0 ||
-		lcase_url.find("https://") != 0) {
+	} else if (lcase_url.find("http://") != 0 && lcase_url.find("https://") != 0) {
 		*url = "http://" + *url;
 	}
 	return true;
