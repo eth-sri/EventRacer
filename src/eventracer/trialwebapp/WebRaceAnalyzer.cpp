@@ -78,20 +78,37 @@ std::string ERLogFileNameFromFetchID(int64 fetch_id) {
 	return PathFromFetchId(fetch_id) + "/ER_actionlog";
 }
 
+bool FixHttpInUrl(std::string* url) {
+	std::string lcase_url = *url;
+	std::transform(lcase_url.begin(), lcase_url.end(), lcase_url.begin(), tolower);
+	if (lcase_url.find("file://") == 0) {
+		return false;
+	}
+
+	if (lcase_url.find("http://http:") == 0 ||
+		lcase_url.find("http://https:") == 0) {
+		*url = url->substr(7, url->size() - 7);
+	} else if (lcase_url.find("http://") != 0 ||
+		lcase_url.find("https://") != 0) {
+		*url = "http://" + *url;
+	}
+	return true;
+}
+
 void HandleFetch(std::string params, std::string* reply) {
 	URLParams dp;
 	dp.parse(params);
 	std::string url = dp.getString("url");
 
-	if (url.empty() || url.find(' ') != std::string::npos) {
+	if (url.empty() || url.find(' ') != std::string::npos || !FixHttpInUrl(&url)) {
 		*reply = "<html><head></head><body>Please provide a valid \"url\" parameter to fetch</body></html>";
 		return;
 	}
 
+
 	int64 fetch_id = GenerateFetchId();
 
 	std::string command;
-
 	StringAppendF(&command, "%s \"%s\" %s",
 			FLAGS_webkit_browser_exec.c_str(),
 			StringEscape(url).c_str(),

@@ -266,7 +266,7 @@ void RaceApp::handleVarList(const std::string& params, std::string* response) {
 			p1.setInt("filter_level", i);
 			StringAppendF(response, "<a href=\"varlist?%s\">", p1.toString().c_str());  // p1.toString() URL escapes.
 			switch (i) {
-			case 0: response->append("[all]"); break;
+			case 0: if (filter_level == 0) response->append("[all]"); else response->append(""); break;
 			case 1: response->append(""); break;
 			case 2: response->append("[only with races]"); break;
 			case 3: response->append("[only with uncovered races]"); break;
@@ -297,7 +297,7 @@ void RaceApp::handleVarList(const std::string& params, std::string* response) {
 	table.setColumn(VAR_NAME, "Name");
 	table.setColumn(NUM_RACES, "Num. races");
 	table.setColumn(NUM_UNCOVERED_RACES, "Num. uncovered races");
-	table.setColumn(TAGS, "Race filters");
+	table.setColumn(TAGS, "Race classes");
 	table.writeHeader();
 
 	for (int level = 5; level >= filter_level; --level) {
