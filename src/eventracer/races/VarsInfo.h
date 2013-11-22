@@ -183,6 +183,7 @@ public:
 		static const char* AccessStr(VarAccessType access);
 
 		const char* TypeStr() const;
+		const char* TypeShortStr() const;
 
 		RaceInfo(VarAccessType a1, VarAccessType a2, int e1, int e2, int command_in_e1, int command_in_e2, int v)
 			: m_access1(a1), m_access2(a2),

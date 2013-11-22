@@ -14,6 +14,7 @@ ADD_SUBDIRECTORY(eventracer/util)
 ADD_SUBDIRECTORY(eventracer/tool)
 ADD_SUBDIRECTORY(eventracer/trialwebapp)
 ADD_SUBDIRECTORY(eventracer/webapp)
+ADD_SUBDIRECTORY(eventracer/webera)
 
 
 

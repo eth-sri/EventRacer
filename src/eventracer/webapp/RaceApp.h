@@ -58,6 +58,10 @@ public:
 
 	void handleUndefRaces(const std::string& params, std::string* response);
 
+	const SimpleDirectedGraph& graph() const { return m_inputEventGraph; }
+	const ActionLog& actions() const { return m_actions; }
+	const VarsInfo& vinfo() const { return m_vinfo; }
+	const StringSet& vars() const { return m_vars; }
 private:
 	int getVarFilterLevel(int var_id, const VarsInfo::VarData& data) const;
 

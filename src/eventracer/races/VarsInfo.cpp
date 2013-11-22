@@ -516,6 +516,36 @@ const char* VarsInfo::RaceInfo::TypeStr() const {
 	return "Unknown race";
 }
 
+const char* VarsInfo::RaceInfo::TypeShortStr() const {
+	switch (m_access1) {
+	case MEMORY_READ: {
+		switch (m_access2) {
+		case MEMORY_READ: return "RR";  // Should never happen.
+		case MEMORY_WRITE: return "RW";
+		case MEMORY_UPDATE: return "RU";
+		}
+		break;
+	}
+	case MEMORY_WRITE: {
+		switch (m_access2) {
+		case MEMORY_READ: return "WR";
+		case MEMORY_WRITE: return "WW";
+		case MEMORY_UPDATE: return "WU";
+		}
+		break;
+	}
+	case MEMORY_UPDATE: {
+		switch (m_access2) {
+		case MEMORY_READ: return "UR";
+		case MEMORY_WRITE: return "UW";
+		case MEMORY_UPDATE: return "UU";
+		}
+		break;
+	}
+	}
+	return "??";
+}
+
 int VarsInfo::getCommandIdForVarReadInEventAction(const VarData& var, int event_action_id) {
 	for (size_t i = 0; i < var.m_accesses.size(); ++i) {
 		if (var.m_accesses[i].m_eventActionId == event_action_id && var.m_accesses[i].m_isRead) {
