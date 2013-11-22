@@ -37,7 +37,7 @@ DEFINE_string(in_schedule_file, "/tmp/schedule.data",
 DEFINE_string(out_schedule_file, "/tmp/new_schedule.data",
 		"Filename with the schedules");
 
-DEFINE_string(javascript_files, "http://localhost:8000/",
+DEFINE_string(javascript_files, "http://www.srl.inf.ethz.ch/webera",
 		"The path to the JavaScript/CSS files");
 
 namespace {
