@@ -66,7 +66,10 @@ void handleCreateSchedule(const std::string& params, std::string* reply) {
 	}
 
 	std::vector<int> order;
-	if (!reorder->GetSchedule(all_reverses, race_app->graph(), &order)) {
+	TraceReorder::Options options;
+	options.relax_replay_after_all_races = (p.getIntDefault("relax", 0) != 0);
+	options.minimize_variation_from_original = (p.getIntDefault("min_variation", 1) != 0);
+	if (!reorder->GetSchedule(all_reverses, race_app->graph(), options, &order)) {
 		reply->append("{\"status\": \"Could not get create the desired schedule...\"}");
 	} else {
 		reorder->SaveSchedule(FLAGS_out_schedule_file.c_str(), order);
@@ -88,6 +91,10 @@ void handleMain(const std::string& params, std::string* reply) {
 			"<h2>or click on races too see them in <a href=\"/varlist\">EventRacer</a>.</h2>"
 			"<h4><b>Status:</b> <span id=\"status\">drag races below, please!</span>"
 			"&nbsp;&nbsp;<input type=\"button\" id=\"reschedule\" value=\"[re]create schedule!\"></h4>\n"
+			"<h4 class=\"blue\"><b>Options:</b>"
+			"<label><input type=\"checkbox\" id=\"relax_after_races\">Do not enforce schedule after reversing the races</label>"
+			"<label><input type=\"checkbox\" id=\"minimize_variation\" checked>Minimize variation from original</label>"
+			"</h4>\n"
 			"<section id=\"connected\">"
 			"<ul class=\"connected list\" id=\"races\">Races to reverse:</ul>\n"
 			"<ul class=\"connected list no2\">Uncovered races:");
@@ -104,6 +111,9 @@ void handleMain(const std::string& params, std::string* reply) {
 					race.TypeShortStr(),
 					HTMLEscape(vars.getString(race.m_varId)).c_str());
 		}
+	}
+	if (num_races == 0) {
+		StringAppendF(reply, "<p>No races.</p>");
 	}
 
 	StringAppendF(reply, "</ul></section>");

@@ -35,9 +35,22 @@ public:
 		int node2;
 	};
 
+	struct Options {
+		Options() : relax_replay_after_all_races(false), minimize_variation_from_original(true) {
+		}
+
+		// Whether the replay will contain a <relax> tag that will not strictly enforce the same scheduling
+		// after all races are reversed.
+		bool relax_replay_after_all_races;
+
+		// Whteher to try to minimize the variation from the original trace.
+		bool minimize_variation_from_original;
+	};
+
 	bool GetSchedule(
 			const std::vector<Reverse>& reverses,
 			const SimpleDirectedGraph& graph,
+			const Options& options,
 			std::vector<int>* schedule);
 
 	void SaveSchedule(const char* filename, const std::vector<int>& schedule) const;
