@@ -143,7 +143,7 @@ const char* VarTypeByName(const char* name) {
 // End utility
 }  // namespace
 
-RaceApp::RaceApp(int64 app_id, const std::string& actionLogFile)
+RaceApp::RaceApp(int64 app_id, const std::string& actionLogFile, bool can_drop_nodes)
 	: m_appId(app_id),
 	  m_raceTags(m_vinfo, m_actions, m_vars, m_scopes, m_memValues, m_callTraceBuilder),
 	  m_fileName(actionLogFile) {
@@ -183,7 +183,7 @@ RaceApp::RaceApp(int64 app_id, const std::string& actionLogFile)
 
 	m_graphInfo.init(m_actions);
 	EventGraphFixer fixer(&m_actions, &m_vars, &m_scopes, &m_inputEventGraph, &m_graphInfo);
-	fixer.dropNoFollowerEmptyEvents();
+	if (can_drop_nodes) { fixer.dropNoFollowerEmptyEvents(); }
 	fixer.makeIndependentEventExploration();
 	fixer.addScriptsAndResourcesHappensBefore();
 	fixer.addEventAfterTargetHappensBefore();

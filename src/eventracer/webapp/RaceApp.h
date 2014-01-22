@@ -35,7 +35,7 @@ class CodeOutput;
 
 class RaceApp {
 public:
-	RaceApp(int64 app_id, const std::string& actionLogFile);
+	RaceApp(int64 app_id, const std::string& actionLogFile, bool can_drop_nodes);
 	~RaceApp();
 
 	void handleInfo(const std::string& params, std::string* response);

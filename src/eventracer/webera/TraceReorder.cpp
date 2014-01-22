@@ -38,8 +38,8 @@ void TraceReorder::LoadSchedule(const char* filename) {
 	while (ReadLine(f, &line)) {
 		int node_id;
 		if (sscanf(line.c_str(), "%d;", &node_id) == 1) {
-			if (node_id >= static_cast<int>(m_actions.size())) {
-				m_actions.resize(node_id + 1, std::string(""));
+			while (node_id >= static_cast<int>(m_actions.size())) {
+				m_actions.push_back(std::string(""));
 			}
 
 			m_actions[node_id] = std::string(strchr(line.c_str(), ';') + 1);

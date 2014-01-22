@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
 	reorder = new TraceReorder();
 	reorder->LoadSchedule(FLAGS_in_schedule_file.c_str());
 	// Creating a race app.
-	race_app = new RaceApp(0, argv[1]);
+	race_app = new RaceApp(0, argv[1], false);
 
 	// Start the web server.
 	ctx = mg_start(&callbacks, NULL, options);

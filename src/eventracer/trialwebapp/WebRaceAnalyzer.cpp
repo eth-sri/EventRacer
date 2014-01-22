@@ -162,7 +162,7 @@ RaceApp* GetRaceAppFromFetchId(int64 fetch_id) {
 	std::string file_name = ERLogFileNameFromFetchID(fetch_id);
 	if (!FileExists(file_name)) return NULL;
 
-	RaceApp* new_app = new RaceApp(fetch_id, file_name);
+	RaceApp* new_app = new RaceApp(fetch_id, file_name, true);
 	race_apps.push_back(std::pair<int64, RaceApp*>(fetch_id, new_app));
 	return new_app;
 }

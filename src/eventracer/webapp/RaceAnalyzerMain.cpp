@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Creating a race app.
-	race_app = new RaceApp(0, argv[1]);
+	race_app = new RaceApp(0, argv[1], true);
 
 	// Start the web server.
 	ctx = mg_start(&callbacks, NULL, options);
