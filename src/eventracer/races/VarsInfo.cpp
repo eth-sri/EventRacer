@@ -484,6 +484,18 @@ void VarsInfo::findMultiRaceDependency(const ActionLog& actions) {
 	m_raceGraph = new RaceGraph(*this, *m_fastEventGraph);
 	m_raceGraph->buildTopGraph();
 	m_raceGraph->checkCoverage(&m_races);
+
+	// For each var, remove multi-covered races from the list of uncovered races.
+	for (AllVarData::iterator it = m_vars.begin(); it != m_vars.end(); ++it) {
+		VarData& var = it->second;
+		std::vector<int>& v = var.m_noParentRaces;
+		for (size_t i = 0; i < v.size(); ++i) {
+			if (!m_races[v[i]].m_multiParentRaces.empty()) {
+				v[i] = -1;
+			}
+		}
+		v.erase(std::remove(v.begin(), v.end(), -1), v.end());
+	}
 }
 
 const char* VarsInfo::RaceInfo::TypeStr() const {

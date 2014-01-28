@@ -35,20 +35,33 @@ public:
 		int node2;
 	};
 
+	struct Preserve {
+		// A preserve must keep node1 before node2.
+		int node1;
+		int node2;
+	};
+
 	struct Options {
-		Options() : relax_replay_after_all_races(false), minimize_variation_from_original(true) {
+		Options()
+		  : include_change_marker(false),
+		    relax_replay_after_all_races(false),
+		    minimize_variation_from_original(true) {
 		}
+
+		// Whether to include a <change> marker denoting that non-determinism is to be expected after it.
+		bool include_change_marker;
 
 		// Whether the replay will contain a <relax> tag that will not strictly enforce the same scheduling
 		// after all races are reversed.
 		bool relax_replay_after_all_races;
 
-		// Whteher to try to minimize the variation from the original trace.
+		// Whether to try to minimize the variation from the original trace.
 		bool minimize_variation_from_original;
 	};
 
 	bool GetSchedule(
 			const std::vector<Reverse>& reverses,
+			const std::vector<Preserve>& preserves,
 			const SimpleDirectedGraph& graph,
 			const Options& options,
 			std::vector<int>* schedule);

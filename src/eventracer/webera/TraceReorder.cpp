@@ -54,6 +54,9 @@ void TraceReorder::SaveSchedule(const char* filename, const std::vector<int>& sc
 	FILE* f = fopen(filename, "wt");
 	int maxi = m_actions.size();
 	for (size_t i = 0; i < schedule.size(); ++i) {
+		if (schedule[i] == -2) {
+			fprintf(f, "<change>\n");
+		}
 		if (schedule[i] == -1) {
 			fprintf(f, "<relax>\n");
 		}
@@ -69,6 +72,7 @@ void TraceReorder::SaveSchedule(const char* filename, const std::vector<int>& sc
 
 bool TraceReorder::GetSchedule(
 		const std::vector<Reverse>& reverses,
+		const std::vector<Preserve>& preserves,
 		const SimpleDirectedGraph& graph,
 		const Options& options,
 		std::vector<int>* schedule) {
@@ -79,6 +83,13 @@ bool TraceReorder::GetSchedule(
 	std::vector<std::vector<int> > rev_succ(graph.numNodes());
 	for (size_t i = 0; i < reverses.size(); ++i) {
 		rev_succ[reverses[i].node2].push_back(reverses[i].node1);
+//		printf("Reverse %d < %d\n", reverses[i].node2, reverses[i].node1);
+	}
+
+	std::vector<std::vector<int> > pres_succ(graph.numNodes());
+	for (size_t i = 0; i < preserves.size(); ++i) {
+		pres_succ[preserves[i].node1].push_back(preserves[i].node2);
+//		printf("Preserve %d < %d\n", preserves[i].node1, preserves[i].node2);
 	}
 
 	std::set<int> to_output;
@@ -88,6 +99,12 @@ bool TraceReorder::GetSchedule(
 			if (succs1[i] < node_id) fprintf(stderr, "Reverse arc\n");
 			++in_degree[succs1[i]];
 		}
+		// Arcs to preserve.
+		const std::vector<int>& succs3 = pres_succ[node_id];
+		for (size_t i = 0; i < succs3.size(); ++i) {
+			++in_degree[succs3[i]];
+		}
+
 		const std::vector<int>& succs2 = rev_succ[node_id];
 		for (size_t i = 0; i < succs2.size(); ++i) {
 			++in_degree[succs2[i]];
@@ -98,12 +115,20 @@ bool TraceReorder::GetSchedule(
 
 	// Number of events produced in the output.
 	int last_num_output, num_output;
+	bool change_marker_emitted = false;
 	num_output = 0;
 	schedule->clear();
 	do {
 		last_num_output = num_output;
 		for (int node_id = 0; node_id < graph.numNodes(); ++node_id) {
 			if (in_degree[node_id] == 0 && to_output.count(node_id) > 0) {
+				if (options.include_change_marker &&
+					change_marker_emitted == false &&
+					!rev_succ[node_id].empty()) {
+					schedule->push_back(-2);  // <change> marker.
+					change_marker_emitted = true;
+				}
+
 				to_output.erase(node_id);
 				schedule->push_back(node_id);
 				++num_output;
@@ -111,13 +136,17 @@ bool TraceReorder::GetSchedule(
 				for (size_t i = 0; i < succs1.size(); ++i) {
 					--in_degree[succs1[i]];
 				}
+				const std::vector<int>& succs3 = pres_succ[node_id];
+				for (size_t i = 0; i < succs3.size(); ++i) {
+					--in_degree[succs3[i]];
+				}
 				const std::vector<int>& succs2 = rev_succ[node_id];
 				for (size_t i = 0; i < succs2.size(); ++i) {
 					--in_degree[succs2[i]];
 					--num_reverses;
 					if (num_reverses == 0 && options.relax_replay_after_all_races) {
 						// -1 is a relax tag in the schedule. It does not count as an event.
-						schedule->push_back(-1);
+						schedule->push_back(-1);  // <relax> marker
 					}
 
 					if (options.minimize_variation_from_original) {
