@@ -24,6 +24,8 @@
 
 #include "file.h"
 
+#include "VarsInfo.h"
+
 TraceReorder::TraceReorder() {
 }
 
@@ -70,12 +72,73 @@ void TraceReorder::SaveSchedule(const char* filename, const std::vector<int>& sc
 	fclose(f);
 }
 
+bool TraceReorder::GetScheduleFromRaces(
+		const VarsInfo& vinfo,
+		const std::vector<int>& rev_races,
+		const SimpleDirectedGraph& graph,
+		const Options& options,
+		std::vector<int>* schedule) const {
+
+	std::vector<TraceReorder::Reverse> all_reverses;
+	std::set<int> non_reversed_races;
+	for (size_t race_id = 0; race_id < vinfo.races().size(); ++race_id) {
+		const VarsInfo::RaceInfo& race = vinfo.races()[race_id];
+		if (race.m_coveredBy == -1 && race.m_multiParentRaces.empty()) {
+			non_reversed_races.insert(static_cast<int>(race_id));
+		}
+	}
+
+	for (size_t i = 0; i < rev_races.size(); ++i) {
+		int race_id = rev_races[i];
+		if (race_id >= 0 && race_id < static_cast<int>(vinfo.races().size())) {
+			const VarsInfo::RaceInfo& race = vinfo.races()[race_id];
+			TraceReorder::Reverse rev;
+			rev.node1 = race.m_event1;
+			rev.node2 = race.m_event2;
+			all_reverses.push_back(rev);
+
+			non_reversed_races.erase(race_id);
+			non_reversed_races.erase(race.m_coveredBy);
+			for (size_t j = 0; j < race.m_multiParentRaces.size(); ++j) {
+				non_reversed_races.erase(race.m_multiParentRaces[j]);
+			}
+		}
+	}
+
+	// Do not reverse any other races.
+	std::vector<TraceReorder::Preserve> all_preserves;
+	for (std::set<int>::const_iterator it = non_reversed_races.begin(); it != non_reversed_races.end(); ++it) {
+		int race_id = *it;
+		const VarsInfo::RaceInfo& race = vinfo.races()[race_id];
+		TraceReorder::Preserve pres;
+		pres.node1 = race.m_event1;
+		pres.node2 = race.m_event2;
+		bool can_enforce = true;
+		for (size_t i = 0; i < all_reverses.size(); ++i) {
+			const TraceReorder::Reverse& rev = all_reverses[i];
+			if (rev.node2 == pres.node2 && rev.node1 <= pres.node1) {
+				// Avoid enforcing races that "could" cause a cycle.
+				// Note: in this case we are predicting "could" without actually checking the
+				// happens-before, but over-approximating.
+				can_enforce = false;
+			}
+		}
+
+		if (can_enforce) {
+			all_preserves.push_back(pres);
+		}
+//		printf("%d %d %d\n", race_id, race.m_event1, race.m_event2);
+	}
+
+	return GetSchedule(all_reverses, all_preserves, graph, options, schedule);
+}
+
 bool TraceReorder::GetSchedule(
 		const std::vector<Reverse>& reverses,
 		const std::vector<Preserve>& preserves,
 		const SimpleDirectedGraph& graph,
 		const Options& options,
-		std::vector<int>* schedule) {
+		std::vector<int>* schedule) const {
 
 	int num_reverses = 0;
 

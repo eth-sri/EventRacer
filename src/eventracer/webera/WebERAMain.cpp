@@ -27,6 +27,7 @@
 #include "strutil.h"
 #include "TraceReorder.h"
 #include "UrlEncoding.h"
+#include "VarsInfo.h"
 
 DEFINE_string(port, "8000", "Port where the web server listens.");
 DECLARE_string(dot_temp_dir);
@@ -51,58 +52,12 @@ void handleCreateSchedule(const std::string& params, std::string* reply) {
 	std::vector<std::string> s;
 	SplitStringUsing(p.getString("r"), 'R', &s);
 
-	std::vector<TraceReorder::Reverse> all_reverses;
-	const VarsInfo& vinfo = race_app->vinfo();
-
-	std::set<int> non_reversed_races;
-	for (size_t race_id = 0; race_id < vinfo.races().size(); ++race_id) {
-		const VarsInfo::RaceInfo& race = vinfo.races()[race_id];
-		if (race.m_coveredBy == -1 && race.m_multiParentRaces.empty()) {
-			non_reversed_races.insert(static_cast<int>(race_id));
-		}
-	}
-
+	std::vector<int> reversed_races;
 	for (size_t i = 0; i < s.size(); ++i) {
 		int race_id;
-		if (sscanf(s[i].c_str(), "%d", &race_id) == 1 &&
-				race_id >= 0 && race_id < static_cast<int>(vinfo.races().size())) {
-			const VarsInfo::RaceInfo& race = vinfo.races()[race_id];
-			TraceReorder::Reverse rev;
-			rev.node1 = race.m_event1;
-			rev.node2 = race.m_event2;
-			all_reverses.push_back(rev);
-
-			non_reversed_races.erase(race_id);
-			non_reversed_races.erase(race.m_coveredBy);
-			for (size_t j = 0; j < race.m_multiParentRaces.size(); ++j) {
-				non_reversed_races.erase(race.m_multiParentRaces[j]);
-			}
+		if (sscanf(s[i].c_str(), "%d", &race_id) == 1) {
+			reversed_races.push_back(race_id);
 		}
-	}
-
-	// Do not reverse any other races.
-	std::vector<TraceReorder::Preserve> all_preserves;
-	for (std::set<int>::const_iterator it = non_reversed_races.begin(); it != non_reversed_races.end(); ++it) {
-		int race_id = *it;
-		const VarsInfo::RaceInfo& race = vinfo.races()[race_id];
-		TraceReorder::Preserve pres;
-		pres.node1 = race.m_event1;
-		pres.node2 = race.m_event2;
-		bool can_enforce = true;
-		for (size_t i = 0; i < all_reverses.size(); ++i) {
-			const TraceReorder::Reverse& rev = all_reverses[i];
-			if (rev.node2 == pres.node2 && rev.node1 <= pres.node1) {
-				// Avoid enforcing races that "could" cause a cycle.
-				// Note: in this case we are predicting "could" without actually checking the
-				// happens-before, but over-approximating.
-				can_enforce = false;
-			}
-		}
-
-		if (can_enforce) {
-			all_preserves.push_back(pres);
-		}
-//		printf("%d %d %d\n", race_id, race.m_event1, race.m_event2);
 	}
 
 	std::vector<int> order;
@@ -110,12 +65,12 @@ void handleCreateSchedule(const std::string& params, std::string* reply) {
 	options.relax_replay_after_all_races = (p.getIntDefault("relax", 0) != 0);
 	options.include_change_marker = options.relax_replay_after_all_races;
 	options.minimize_variation_from_original = (p.getIntDefault("min_variation", 1) != 0);
-	if (!reorder->GetSchedule(all_reverses, all_preserves, race_app->graph(), options, &order)) {
+	if (!reorder->GetScheduleFromRaces(race_app->vinfo(), reversed_races, race_app->graph(), options, &order)) {
 		reply->append("{\"status\": \"Could not get create the desired schedule...\"}");
 	} else {
 		reorder->SaveSchedule(FLAGS_out_schedule_file.c_str(), order);
 		StringAppendF(reply, "{\"status\": \"Schedule with %d reversed races written to %s\"}",
-				static_cast<int>(all_reverses.size()), FLAGS_out_schedule_file.c_str());
+				static_cast<int>(reversed_races.size()), FLAGS_out_schedule_file.c_str());
 	}
 }
 

@@ -22,6 +22,8 @@
 
 #include "EventGraph.h"
 
+class VarsInfo;
+
 class TraceReorder {
 public:
 	TraceReorder();
@@ -59,12 +61,19 @@ public:
 		bool minimize_variation_from_original;
 	};
 
+	bool GetScheduleFromRaces(
+			const VarsInfo& vinfo,
+			const std::vector<int>& rev_races,
+			const SimpleDirectedGraph& graph,
+			const Options& options,
+			std::vector<int>* schedule) const;
+
 	bool GetSchedule(
 			const std::vector<Reverse>& reverses,
 			const std::vector<Preserve>& preserves,
 			const SimpleDirectedGraph& graph,
 			const Options& options,
-			std::vector<int>* schedule);
+			std::vector<int>* schedule) const;
 
 	void SaveSchedule(const char* filename, const std::vector<int>& schedule) const;
 
