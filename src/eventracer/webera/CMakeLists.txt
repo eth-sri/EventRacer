@@ -23,4 +23,6 @@ TARGET_LINK_LIBRARIES(eventracer_webera base util eventracer_races eventracer_fi
 ADD_EXECUTABLE(webera WebERAMain.cpp)
 TARGET_LINK_LIBRARIES(webera eventracer_webapp eventracer_webera)
 
+ADD_EXECUTABLE(run_schedules RunSchedules.cpp)
+TARGET_LINK_LIBRARIES(run_schedules eventracer_webapp eventracer_webera)
 
