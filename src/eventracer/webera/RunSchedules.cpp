@@ -41,8 +41,12 @@ DEFINE_string(tmp_error_log, "/tmp/errors.log",
 		"Filename with the schedules.");
 DEFINE_string(tmp_png_file, "/tmp/replay.png",
 		"Filename with the schedules.");
+DEFINE_string(tmp_stdout, "/tmp/stdout.txt", "Standard output redirect of WebERA.");
 
 DEFINE_string(out_dir, "/tmp/outdir", "Location of the output.");
+
+DEFINE_int32(max_races_per_memory_location, 3,
+		"Maximum number of races to try to reverse per memory location.");
 
 namespace {
 
@@ -62,6 +66,8 @@ bool performSavedSchedule(const std::string& schedule_name) {
 	std::string command;
 	StringAppendF(&command, FLAGS_replay_command.c_str(),
 			FLAGS_site.c_str(), FLAGS_tmp_schedule_file.c_str());
+	command += " > ";
+	command += FLAGS_tmp_stdout;
 	if (system(command.c_str()) != 0) {
 		fprintf(stderr, "Could not run command: %s\n", command.c_str());
 		return false;
@@ -76,6 +82,7 @@ bool performSavedSchedule(const std::string& schedule_name) {
 	if (!MoveFile(FLAGS_tmp_schedule_file, out_dir)) return false;
 	if (!MoveFile(FLAGS_tmp_png_file, out_dir)) return false;
 	if (!MoveFile(FLAGS_tmp_error_log, out_dir)) return false;
+	if (!MoveFile(FLAGS_tmp_stdout, out_dir)) return false;
 
 	return true;
 }
@@ -93,17 +100,25 @@ void createReorders() {
 	int successful_reverses = 0;
 	int successful_schedules = 0;
 
+	std::map<int, int> reversals_per_memory_locations;
 	for (int race_id = -1; race_id < static_cast<int>(vinfo.races().size()); ++race_id) {
 		std::string name;
 		std::vector<int> rev_races;
 		if (race_id == -1) {
+			// Do not reverse any races in this case.
 			name = "base";
 		} else {
 			name = StringPrintf("race%d", race_id);
 			const VarsInfo::RaceInfo& race = vinfo.races()[race_id];
 			if (!race.m_multiParentRaces.empty() || race.m_coveredBy != -1) continue;
+			if (reversals_per_memory_locations[race.m_varId]++ >= FLAGS_max_races_per_memory_location) {
+				continue;
+			}
+
+			// Reverse the current race (and only it).
 			rev_races.push_back(race_id);
 		}
+		fprintf(stderr, "Reordering \"%s\": ", name.c_str());
 
 		++all_schedules;
 		std::vector<int> new_schedule;
@@ -125,6 +140,12 @@ void createReorders() {
 
 int main(int argc, char* argv[]) {
 	google::ParseCommandLineFlags(&argc, &argv, true);
+
+	if (FLAGS_site.empty()) {
+		fprintf(stderr, "  --site is a mandatory parameter.\n");
+		return -1;
+	}
+
 	reorder = new TraceReorder();
 	reorder->LoadSchedule(FLAGS_in_schedule_file.c_str());
 	race_app = new RaceApp(0, argv[1], false);
