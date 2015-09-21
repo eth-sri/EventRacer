@@ -10,8 +10,9 @@ How to compile (on Linux)
 Install prerequisites
    * Google Sparse Hash (http://code.google.com/p/sparsehash/downloads/list)
       * ```sudo apt-get install sparsehash```
-   * Google Flags 2.0 (https://code.google.com/p/gflags/downloads/list)
-      * Build this from source, download file: gflags-2.0.tar.gz
+   * Google Flags 2.0 (http://gflags.github.io/gflags/)
+      * ```sudo apt-get install libgflags-dev```
+      * or, build this from source, cloning git@github.com:gflags/gflags.git
    * CMake 2.8 (http://www.cmake.org/)
       * ```sudo apt-get install cmake```
    * GraphViz is needed to display happens-before graphs.
