@@ -9,7 +9,7 @@ How to compile (on Linux)
 
 Install prerequisites
    * Google Sparse Hash (http://code.google.com/p/sparsehash/downloads/list)
-      * ```sudo apt-get install sparsehash```
+      * ```sudo apt-get install libsparsehash-dev```
    * Google Flags 2.0 (http://gflags.github.io/gflags/)
       * ```sudo apt-get install libgflags-dev```
       * or, build this from source, cloning git@github.com:gflags/gflags.git
